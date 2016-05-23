@@ -1,0 +1,25 @@
+﻿  SystemEventsManager.cpp
+c:\users\stagiaire3\desktop\4d-plugin-system-events\system events\systemeventsmanager.cpp(159): warning C4018: '<': signed/unsigned mismatch
+  Event.cpp
+  4DPlugin.cpp
+  C_TIME.cpp
+  C_TEXT.cpp
+  C_REAL.cpp
+  C_POINTER.cpp
+  C_PICTURE.cpp
+  C_LONGINT.cpp
+  C_INTEGER.cpp
+  C_DATE.cpp
+  C_BLOB.cpp
+  ARRAY_TIME.cpp
+  ARRAY_TEXT.cpp
+  ARRAY_REAL.cpp
+  ARRAY_LONGINT.cpp
+  ARRAY_INTEGER.cpp
+  ARRAY_DATE.cpp
+  ARRAY_BOOLEAN.cpp
+  4DPluginAPI.c
+  Generating Code...
+4DPluginAPI.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+     Creating library C:\Users\Stagiaire3\Desktop\4d-plugin-system-events\System Events\System Events.4dbase\plugins\System Events.bundle\contents\windows\System Events.lib and object C:\Users\Stagiaire3\Desktop\4d-plugin-system-events\System Events\System Events.4dbase\plugins\System Events.bundle\contents\windows\System Events.exp
+  System Events.vcxproj -> C:\Users\Stagiaire3\Desktop\4d-plugin-system-events\System Events\System Events.4dbase\plugins\System Events.bundle\contents\windows\System Events.4DX

@@ -26,9 +26,52 @@ long SystemEventsManager::currentCallback;
 std::vector<Event> SystemEventsManager::events;
 
 #if VERSIONWIN
-void SystemEventsManager::runLoop() {}
-void systemEventCallback() {}
-void SystemEventsManager::stopLoop(bool forceStop) {}
+HWND hWin;
+
+LRESULT CALLBACK systemEventCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	switch (uMsg)
+	{
+	case WM_CREATE:
+		// Initialize the window. 
+		return 0;
+
+	case WM_DESTROY:
+		// Clean up window-specific data objects. 
+		return 0;
+
+	case WM_QUERYENDSESSION:
+		return false;
+
+	case WM_POWERBROADCAST:
+		return false;
+
+		// 
+		// Process other messages. 
+		// 
+
+	default:
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
+	return 0;
+}
+
+void SystemEventsManager::runLoop() {
+	WNDCLASS wc = { 0 };
+	wc.lpfnWndProc = systemEventCallback;
+	const wchar_t className[] = L"";
+	wc.lpszClassName = className;
+	RegisterClass(&wc);
+	hWin = CreateWindow(className, L"", 0, 0, 0, 0, 0, NULL, NULL, NULL, 0);
+	running = true;
+}
+
+void SystemEventsManager::stopLoop(bool forceStop) {
+	if (running && (forceStop || allEventsDisabled())) {
+		ShutdownBlockReasonDestroy(hWin);
+		DestroyWindow(hWin);
+		running = false;
+	}
+}
 #else
 io_connect_t rootPort;
 IONotificationPortRef notifyPortRef;
@@ -162,4 +205,11 @@ void SystemEventsManager::prevent(int event, bool prevent) {
     else
         stopLoop();
     events[event].prevent(prevent);
+#if VERSIONWIN
+	if (prevent) {
+		ShutdownBlockReasonCreate(hWin, L"");
+	} else if (running) {
+		ShutdownBlockReasonDestroy(hWin);
+	}
+#endif
 }

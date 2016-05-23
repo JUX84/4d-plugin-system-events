@@ -1,0 +1,14 @@
+{
+    "name":"System Events",
+    "id":15000,
+    "commands":[
+                {"theme":"Sleep","syntax":"sleepSetCallback(&T)"},
+                {"theme":"Sleep","syntax":"sleepRegisterCallback"},
+                {"theme":"Sleep","syntax":"sleepUnregisterCallback"},
+                {"theme":"Sleep","syntax":"sleepPrevent"},
+                {"theme":"Sleep","syntax":"sleepUnprevent"},
+                {"theme":"Wake","syntax":"wakeSetCallback(&T)"},
+                {"theme":"Wake","syntax":"wakeRegisterCallback"},
+                {"theme":"Wake","syntax":"wakeUnregisterCallback"}
+                ]
+}
