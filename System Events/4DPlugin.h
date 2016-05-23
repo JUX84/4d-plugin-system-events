@@ -24,9 +24,11 @@ void wakeSetCallback(sLONG_PTR *pResult, PackagePtr pParams);
 void wakeRegisterCallback(sLONG_PTR *pResult, PackagePtr pParams);
 void wakeUnregisterCallback(sLONG_PTR *pResult, PackagePtr pParams);
 
+#if VERSIONWIN
 // --- Shutdown
 void shutdownSetCallback(sLONG_PTR *pResult, PackagePtr pParams);
 void shutdownRegisterCallback(sLONG_PTR *pResult, PackagePtr pParams);
 void shutdownUnregisterCallback(sLONG_PTR *pResult, PackagePtr pParams);
 void shutdownPrevent(sLONG_PTR *pResult, PackagePtr pParams);
 void shutdownUnprevent(sLONG_PTR *pResult, PackagePtr pParams);
+#endif

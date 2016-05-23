@@ -77,6 +77,8 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 			wakeUnregisterCallback(pResult, pParams);
 			break;
 
+#if VERSIONWIN
+            
 // --- Shutdown
 
 		case 9 :
@@ -98,7 +100,7 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 		case 13 :
 			shutdownUnprevent(pResult, pParams);
 			break;
-
+#endif
 	}
 }
 
@@ -194,6 +196,8 @@ void wakeUnregisterCallback(sLONG_PTR *pResult, PackagePtr pParams)
     SystemEventsManager::unregisterCallback(SYSTEM_WAKE);
 }
 
+#if VERSIONWIN
+
 // ----------------------------------- Shutdown -----------------------------------
 
 
@@ -204,43 +208,40 @@ void shutdownSetCallback(sLONG_PTR *pResult, PackagePtr pParams)
 	methodName.fromParamAtIndex(pParams, 1);
 
 	// --- write the code of shutdownSetCallback here...
-#if VERSIONWIN
+
     PA_Unichar* name = (PA_Unichar*)methodName.getUTF16StringPtr();
     
     PA_long32 methodID = PA_GetMethodID(name);
     
     SystemEventsManager::setCallback(SYSTEM_SHUTDOWN, methodID);
-#endif
 }
 
 void shutdownRegisterCallback(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	// --- write the code of shutdownRegisterCallback here...
-#if VERSIONWIN
+
     SystemEventsManager::registerCallback(SYSTEM_SHUTDOWN);
-#endif
 }
 
 void shutdownUnregisterCallback(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	// --- write the code of shutdownUnregisterCallback here...
-#if VERSIONWIN
+
     SystemEventsManager::unregisterCallback(SYSTEM_SHUTDOWN);
-#endif
 }
 
 void shutdownPrevent(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	// --- write the code of shutdownPrevent here...
-#if VERSIONWIN
+
     SystemEventsManager::prevent(SYSTEM_SHUTDOWN, true);
-#endif
 }
 
 void shutdownUnprevent(sLONG_PTR *pResult, PackagePtr pParams)
 {
 	// --- write the code of shutdownUnprevent here...
-#if VERSIONWIN
+
     SystemEventsManager::prevent(SYSTEM_SHUTDOWN, false);
-#endif
 }
+
+#endif
