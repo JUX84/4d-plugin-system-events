@@ -29,45 +29,81 @@ std::vector<Event> SystemEventsManager::events;
 HWND hWin;
 
 LRESULT CALLBACK systemEventCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	Event event;
 	switch (uMsg)
 	{
 	case WM_CREATE:
-		// Initialize the window. 
-		return 0;
+		return false;
 
 	case WM_DESTROY:
-		// Clean up window-specific data objects. 
-		return 0;
+		return false;
 
 	case WM_QUERYENDSESSION:
-		return false;
+		event = SystemEventsManager::getEvent(SYSTEM_SHUTDOWN);
+		
+		if (event.isPrevented()) {
+			return false;
+		} else {
+			if (event.isRegistered())
+				SystemEventsManager::runCallback(event.getCallback());
+			return true;
+		}
 
 	case WM_POWERBROADCAST:
-		return false;
+		switch (wParam) {
+		case PBT_APMSUSPEND:
+			event = SystemEventsManager::getEvent(SYSTEM_SLEEP);
 
-		// 
-		// Process other messages. 
-		// 
+			if (event.isRegistered())
+				SystemEventsManager::runCallback(event.getCallback());
+			break;
+		case PBT_APMRESUMEAUTOMATIC:
+			event = SystemEventsManager::getEvent(SYSTEM_WAKE);
 
+			if (event.isRegistered())
+				SystemEventsManager::runCallback(event.getCallback());
+			break;
+		default:
+			break;
+		}
+		return true;
 	default:
 		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
-	return 0;
+	return false;
 }
 
 void SystemEventsManager::runLoop() {
 	WNDCLASS wc = { 0 };
 	wc.lpfnWndProc = systemEventCallback;
-	const wchar_t className[] = L"";
-	wc.lpszClassName = className;
+	const wchar_t name[] = L"SystemEvent";
+	wc.lpszClassName = name;
 	RegisterClass(&wc);
-	hWin = CreateWindow(className, L"", 0, 0, 0, 0, 0, NULL, NULL, NULL, 0);
+	hWin = CreateWindow(name, name, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0);
+
 	running = true;
+	MSG msg = { 0 };
+	BOOL status;
+
+	try {
+		while ((status = GetMessage(&msg, NULL, 0, 0)) != 0)
+		{
+			if (status == -1) {
+				break;
+			}
+			else {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
+	}
+	catch (...) {
+		stopLoop();
+	}
 }
 
 void SystemEventsManager::stopLoop(bool forceStop) {
 	if (running && (forceStop || allEventsDisabled())) {
-		ShutdownBlockReasonDestroy(hWin);
 		DestroyWindow(hWin);
 		running = false;
 	}
@@ -85,14 +121,14 @@ void systemEventCallback(void* refCon,
     switch (messageType) {
         case kIOMessageCanSystemSleep:
             event = SystemEventsManager::getEvent(SYSTEM_SLEEP);
-            
-            if (event.isRegistered())
-                SystemEventsManager::runCallback(event.getCallback());
-            
-            if (event.isPrevented())
-                IOCancelPowerChange(rootPort, (long)messageArgument);
-            else
-                IOAllowPowerChange(rootPort, (long)messageArgument);
+
+			if (event.isPrevented()) {
+				IOCancelPowerChange(rootPort, (long)messageArgument);
+			} else {
+				if (event.isRegistered())
+					SystemEventsManager::runCallback(event.getCallback());
+				IOAllowPowerChange(rootPort, (long)messageArgument);
+			}
             break;
         case kIOMessageSystemWillSleep:
             IOAllowPowerChange(rootPort, (long)messageArgument);
@@ -143,7 +179,7 @@ void SystemEventsManager::stopLoop(bool forceStop) {
 #endif
 
 void SystemEventsManager::executeCallback() {
-    PA_ExecuteMethodByID(currentCallback, nullptr, 0);
+	PA_ExecuteMethodByID(currentCallback, nullptr, 0);
 }
 
 void SystemEventsManager::newProcess(void* params) {
@@ -200,16 +236,19 @@ void SystemEventsManager::unregisterCallback(int event) {
 }
 
 void SystemEventsManager::prevent(int event, bool prevent) {
-    if (prevent)
-        prepareLoop();
-    else
-        stopLoop();
-    events[event].prevent(prevent);
-#if VERSIONWIN
 	if (prevent) {
-		ShutdownBlockReasonCreate(hWin, L"");
-	} else if (running) {
-		ShutdownBlockReasonDestroy(hWin);
-	}
+		prepareLoop();
+#if VERSIONWIN
+		if (event == SYSTEM_SLEEP)
+			SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 #endif
+	}
+    events[event].prevent(prevent);
+	if (!prevent) {
+		stopLoop();
+#if VERSIONWIN
+		if (event == SYSTEM_SLEEP)
+			SetThreadExecutionState(ES_CONTINUOUS);
+#endif
+	}
 }
