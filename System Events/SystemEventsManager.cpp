@@ -225,6 +225,7 @@ void SystemEventsManager::prepareLoop() {
 void SystemEventsManager::init() {
     running = false;
     currentCallback = 0;
+	events.clear();
     for (int i = 0; i < 3; ++i) {
         events.push_back(Event());
     }
