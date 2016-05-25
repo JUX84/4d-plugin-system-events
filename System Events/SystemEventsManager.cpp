@@ -21,10 +21,10 @@
 #include "SystemEventsManager.h"
 #include "Event.h"
 
-bool SystemEventsManager::running;
-bool SystemEventsManager::callbackRunning;
-long SystemEventsManager::currentCallback;
-long SystemEventsManager::callbackProcess;
+bool SystemEventsManager::systemEventLoopRunning;
+bool SystemEventsManager::callbackLoopRunning;
+long SystemEventsManager::callbackMethodID;
+long SystemEventsManager::callbackProcessID;
 std::vector<Event> SystemEventsManager::events;
 
 #if VERSIONWIN
@@ -98,10 +98,8 @@ void SystemEventsManager::runLoop() {
 				DispatchMessage(&msg);
 			}
 		}
-	}
-	catch (...) {
-		stopLoop();
-	}
+	} catch (...) {}
+    stopLoop();
 }
 
 void SystemEventsManager::stopLoop(bool forceStop) {
@@ -156,7 +154,7 @@ void SystemEventsManager::runLoop() {
                                         &notifierObject);
     if (rootPort != 0)
     {
-        running = true;
+        systemEventLoopRunning = true;
         CFRunLoopAddSource(CFRunLoopGetCurrent(),
                            IONotificationPortGetRunLoopSource(notifyPortRef),
                            kCFRunLoopCommonModes);
@@ -165,7 +163,7 @@ void SystemEventsManager::runLoop() {
 }
 
 void SystemEventsManager::stopLoop(bool forceStop) {
-    if (running && (forceStop || allEventsDisabled())) {
+    if (systemEventLoopRunning && (forceStop || allEventsDisabled())) {
         CFRunLoopRemoveSource(CFRunLoopGetCurrent(),
                               IONotificationPortGetRunLoopSource(notifyPortRef),
                               kCFRunLoopCommonModes);
@@ -175,35 +173,35 @@ void SystemEventsManager::stopLoop(bool forceStop) {
         
         CFRunLoopStop(CFRunLoopGetCurrent());
         
-        running = false;
+        systemEventLoopRunning = false;
     }
 }
 #endif
 
 void SystemEventsManager::executeCallback(long callback) {
-    currentCallback = callback;
-    PA_UnfreezeProcess(callbackProcess);
+    callbackMethodID = callback;
+    PA_UnfreezeProcess(callbackProcessID);
 }
 
-void SystemEventsManager::callbackLoop() {
-    while (callbackRunning) {
+void SystemEventsManager::runCallbackLoop() {
+    while (callbackLoopRunning) {
         PA_YieldAbsolute();
-        PA_FreezeProcess(callbackProcess);
-        if (currentCallback != 0) {
-            PA_ExecuteMethodByID(currentCallback, nullptr, 0);
+        PA_FreezeProcess(callbackProcessID);
+        if (callbackMethodID != 0) {
+            PA_ExecuteMethodByID(callbackMethodID, nullptr, 0);
         }
     }
     PA_KillProcess();
 }
 
-void SystemEventsManager::startCallbackLoop() {
-    callbackRunning = true;
-    callbackProcess = PA_NewProcess((void*)callbackLoop, 0, nullptr);
+void SystemEventsManager::prepareCallbackLoop() {
+    callbackLoopRunning = true;
+    callbackProcessID = PA_NewProcess((void*)runCallbackLoop, 0, nullptr);
 }
 
 void SystemEventsManager::stopCallbackLoop() {
-    callbackRunning = false;
-    PA_UnfreezeProcess(callbackProcess);
+    callbackLoopRunning = false;
+    PA_UnfreezeProcess(callbackProcessID);
 }
 
 bool SystemEventsManager::allEventsDisabled() {
@@ -218,13 +216,13 @@ void SystemEventsManager::prepareLoop() {
     if (allEventsDisabled()) {
         std::thread loop(runLoop);
         loop.detach();
-        startCallbackLoop();
+        prepareCallbackLoop();
     }
 }
 
 void SystemEventsManager::init() {
-    running = false;
-    currentCallback = 0;
+    callbackLoopRunning = false;
+    callbackMethodID = 0;
 	events.clear();
     for (int i = 0; i < 3; ++i) {
         events.push_back(Event());

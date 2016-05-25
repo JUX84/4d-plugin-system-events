@@ -110,30 +110,21 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 
 void InitPlugin()
 {
-    // write initialisation code here...
-    
     SystemEventsManager::init();
 }
 
 void DeinitPlugin()
 {
-    // write deinitialisation code here...
-    
     SystemEventsManager::destroy();
 }
 
-bool IsProcessOnExit()
+void CloseProcess()
 {
     C_TEXT name;
-    PA_long32 state, time;
-    PA_GetProcessInfo(PA_GetCurrentProcessNumber(), name, &state, &time);
+    PA_GetProcessInfo(PA_GetCurrentProcessNumber(), name, 0, 0);
     CUTF16String procName(name.getUTF16StringPtr());
     CUTF16String exitProcName((PA_Unichar *)"$\0x\0x\0\0\0");
-    return (!procName.compare(exitProcName));
-}
-
-void CloseProcess() {
-    if (IsProcessOnExit())
+    if (!procName.compare(exitProcName))
         SystemEventsManager::stopCallbackLoop();
 }
 
