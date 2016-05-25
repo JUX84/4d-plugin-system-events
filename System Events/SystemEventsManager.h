@@ -18,8 +18,10 @@
 class SystemEventsManager {
 private:
     static bool running;
+    static bool callbackRunning;
     
     static long currentCallback;
+    static long callbackProcess;
     
     static std::vector<Event> events;
     
@@ -27,15 +29,17 @@ private:
     static void runLoop();
     static void stopLoop(bool = false);
     
-    static void executeCallback();
-    static void newProcess(void*);
+    static void callbackLoop();
+    static void startCallbackLoop();
 public:
     static void init();
     static void destroy();
     
+    static void stopCallbackLoop();
+    
     static bool allEventsDisabled();
     
-    static void runCallback(long);
+    static void executeCallback(long);
     
     static Event getEvent(int);
     

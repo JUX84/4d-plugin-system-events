@@ -40,6 +40,10 @@ void CommandDispatcher (PA_long32 pProcNum, sLONG_PTR *pResult, PackagePtr pPara
 		case kDeinitPlugin :
 			DeinitPlugin();
 			break;
+            
+        case kCloseProcess :
+            CloseProcess();
+            break;
 
 // --- Sleep
 
@@ -116,6 +120,21 @@ void DeinitPlugin()
     // write deinitialisation code here...
     
     SystemEventsManager::destroy();
+}
+
+bool IsProcessOnExit()
+{
+    C_TEXT name;
+    PA_long32 state, time;
+    PA_GetProcessInfo(PA_GetCurrentProcessNumber(), name, &state, &time);
+    CUTF16String procName(name.getUTF16StringPtr());
+    CUTF16String exitProcName((PA_Unichar *)"$\0x\0x\0\0\0");
+    return (!procName.compare(exitProcName));
+}
+
+void CloseProcess() {
+    if (IsProcessOnExit())
+        SystemEventsManager::stopCallbackLoop();
 }
 
 // ------------------------------------- Sleep ------------------------------------

@@ -22,7 +22,9 @@
 #include "Event.h"
 
 bool SystemEventsManager::running;
+bool SystemEventsManager::callbackRunning;
 long SystemEventsManager::currentCallback;
+long SystemEventsManager::callbackProcess;
 std::vector<Event> SystemEventsManager::events;
 
 #if VERSIONWIN
@@ -45,7 +47,7 @@ LRESULT CALLBACK systemEventCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 			return false;
 		} else {
 			if (event.isRegistered())
-				SystemEventsManager::runCallback(event.getCallback());
+				SystemEventsManager::executeCallback(event.getCallback());
 			return true;
 		}
 
@@ -55,13 +57,13 @@ LRESULT CALLBACK systemEventCallback(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 			event = SystemEventsManager::getEvent(SYSTEM_SLEEP);
 
 			if (event.isRegistered())
-				SystemEventsManager::runCallback(event.getCallback());
+				SystemEventsManager::executeCallback(event.getCallback());
 			break;
 		case PBT_APMRESUMEAUTOMATIC:
 			event = SystemEventsManager::getEvent(SYSTEM_WAKE);
 
 			if (event.isRegistered())
-				SystemEventsManager::runCallback(event.getCallback());
+				SystemEventsManager::executeCallback(event.getCallback());
 			break;
 		default:
 			break;
@@ -126,7 +128,7 @@ void systemEventCallback(void* refCon,
 				IOCancelPowerChange(rootPort, (long)messageArgument);
 			} else {
 				if (event.isRegistered())
-					SystemEventsManager::runCallback(event.getCallback());
+					SystemEventsManager::executeCallback(event.getCallback());
 				IOAllowPowerChange(rootPort, (long)messageArgument);
 			}
             break;
@@ -138,7 +140,7 @@ void systemEventCallback(void* refCon,
         case kIOMessageSystemHasPoweredOn:
             event = SystemEventsManager::getEvent(SYSTEM_WAKE);
             if (event.isRegistered())
-                SystemEventsManager::runCallback(event.getCallback());
+                SystemEventsManager::executeCallback(event.getCallback());
             break;
         default:
             break;
@@ -178,17 +180,30 @@ void SystemEventsManager::stopLoop(bool forceStop) {
 }
 #endif
 
-void SystemEventsManager::executeCallback() {
-	PA_ExecuteMethodByID(currentCallback, nullptr, 0);
-}
-
-void SystemEventsManager::newProcess(void* params) {
-    PA_NewProcess((void*)executeCallback, 0, nullptr);
-}
-
-void SystemEventsManager::runCallback(long callback) {
+void SystemEventsManager::executeCallback(long callback) {
     currentCallback = callback;
-    PA_RunInMainProcess(newProcess, nullptr);
+    PA_UnfreezeProcess(callbackProcess);
+}
+
+void SystemEventsManager::callbackLoop() {
+    while (callbackRunning) {
+        PA_YieldAbsolute();
+        PA_FreezeProcess(callbackProcess);
+        if (currentCallback != 0) {
+            PA_ExecuteMethodByID(currentCallback, nullptr, 0);
+        }
+    }
+    PA_KillProcess();
+}
+
+void SystemEventsManager::startCallbackLoop() {
+    callbackRunning = true;
+    callbackProcess = PA_NewProcess((void*)callbackLoop, 0, nullptr);
+}
+
+void SystemEventsManager::stopCallbackLoop() {
+    callbackRunning = false;
+    PA_UnfreezeProcess(callbackProcess);
 }
 
 bool SystemEventsManager::allEventsDisabled() {
@@ -203,11 +218,13 @@ void SystemEventsManager::prepareLoop() {
     if (allEventsDisabled()) {
         std::thread loop(runLoop);
         loop.detach();
+        startCallbackLoop();
     }
 }
 
 void SystemEventsManager::init() {
     running = false;
+    currentCallback = 0;
     for (int i = 0; i < 3; ++i) {
         events.push_back(Event());
     }

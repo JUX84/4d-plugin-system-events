@@ -11,6 +11,7 @@
 
 void InitPlugin();
 void DeinitPlugin();
+void CloseProcess();
 
 // --- Sleep
 void sleepSetCallback(sLONG_PTR *pResult, PackagePtr pParams);
