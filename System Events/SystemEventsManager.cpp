@@ -83,7 +83,7 @@ void SystemEventsManager::runLoop() {
 	RegisterClass(&wc);
 	hWin = CreateWindow(name, name, 0, 0, 0, 0, 0, NULL, NULL, NULL, 0);
 
-	running = true;
+	systemEventLoopRunning = true;
 	MSG msg = { 0 };
 	BOOL status;
 
@@ -103,9 +103,9 @@ void SystemEventsManager::runLoop() {
 }
 
 void SystemEventsManager::stopLoop(bool forceStop) {
-	if (running && (forceStop || allEventsDisabled())) {
+	if (systemEventLoopRunning && (forceStop || allEventsDisabled())) {
 		DestroyWindow(hWin);
-		running = false;
+		systemEventLoopRunning = false;
 	}
 }
 #else
@@ -205,7 +205,7 @@ void SystemEventsManager::stopCallbackLoop() {
 }
 
 bool SystemEventsManager::allEventsDisabled() {
-    for (int i = 0; i < events.size(); ++i) {
+    for (unsigned int i = 0; i < events.size(); ++i) {
         if (events[i].isEnabled())
             return false;
     }
